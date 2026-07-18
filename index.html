@@ -2,70 +2,104 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>FORDEC Live Session PRO</title>
+    <title>FORDEC Arena - Docente Gestisce</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Utilizziamo Firebase per la sincronizzazione reale -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        // Configurazione Firebase (Gratuita e semplice per l'aula)
-        const firebaseConfig = {
-            databaseURL: "https://fordec-live-default-rtdb.firebaseio.com/"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        const scenarios = [
-            { id: 1, title: "Scoppio Pneumatico", facts: "A 70km/h un botto al posteriore. Il bus tira a destra.", options: ["Inchiodare", "Frenata Graduale"] },
-            { id: 2, title: "Incendio Vano Motore", facts: "Fumo dalla griglia, spia STOP accesa.", options: ["Aprire vano", "Evacuare immediato"] }
-        ];
-
-        window.startSession = () => {
-            const sessionId = document.getElementById('session-id').value || "aula1";
-            set(ref(db, 'sessions/' + sessionId), {
-                scenarioIndex: Math.floor(Math.random() * scenarios.length),
-                status: 'active'
-            });
-            alert("Scenario inviato ai partecipanti!");
-        };
-
-        const sessionId = "aula1"; // ID unico per questa sessione
-        onValue(ref(db, 'sessions/' + sessionId), (snapshot) => {
-            const data = snapshot.val();
-            if (data && data.status === 'active') {
-                const s = scenarios[data.scenarioIndex];
-                document.getElementById('view-player').classList.remove('hidden');
-                document.getElementById('p-title').innerText = s.title;
-                document.getElementById('p-facts').innerText = s.facts;
-                const act = document.getElementById('p-actions');
-                act.innerHTML = "";
-                s.options.forEach(o => {
-                    const b = document.createElement('button');
-                    b.className = "w-full p-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold";
-                    b.innerText = o;
-                    b.onclick = () => alert("Risposta inviata al docente!");
-                    act.appendChild(b);
-                });
-            }
-        });
-    </script>
 </head>
-<body class="bg-slate-950 text-white p-6">
-    <div class="max-w-xl mx-auto space-y-8">
-        <!-- VISTA FORMATORE -->
-        <div class="bg-slate-900 p-6 rounded-xl border border-emerald-500">
-            <h1 class="text-xl font-bold text-emerald-400">Pannello Docente</h1>
-            <input type="text" id="session-id" value="aula1" class="bg-slate-800 p-2 w-full mt-2 rounded">
-            <button onclick="startSession()" class="w-full mt-4 bg-emerald-600 py-3 rounded font-bold">Invia Scenario agli Allievi</button>
+<body class="bg-slate-950 text-white min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <div id="setup" class="bg-slate-900 p-8 rounded-2xl border border-slate-700">
+            <h1 class="text-3xl font-bold text-emerald-400 mb-6">Configurazione Aula</h1>
+            <input type="text" id="names" placeholder="Inserisci i nomi dei conducenti separati da virgola" class="w-full p-3 bg-slate-800 rounded border border-slate-600 mb-4 text-white">
+            <button onclick="start()" class="w-full bg-emerald-600 py-3 rounded font-bold">Avvia Simulatore</button>
         </div>
 
-        <!-- VISTA CONDUCENTE -->
-        <div id="view-player" class="hidden bg-slate-900 p-6 rounded-xl border border-blue-500">
-            <h2 class="text-2xl font-bold text-blue-400" id="p-title">In attesa...</h2>
-            <p class="mt-4" id="p-facts"></p>
-            <div id="p-actions" class="mt-6 grid gap-3"></div>
+        <div id="game" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
+            <div id="progress" class="text-emerald-400 font-bold mb-4"></div>
+            <h2 id="title" class="text-3xl font-bold mb-4"></h2>
+            <p id="facts" class="text-lg text-slate-300 mb-8"></p>
+            <audio id="audio" controls class="w-full mb-8"></audio>
+            <div id="options" class="grid grid-cols-2 gap-4"></div>
+        </div>
+
+        <div id="results" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
+            <h2 class="text-2xl font-bold text-emerald-400 mb-6">Riepilogo Finale</h2>
+            <div id="report"></div>
+            <button onclick="location.reload()" class="mt-6 w-full bg-slate-700 py-3 rounded font-bold">Nuova Sessione</button>
         </div>
     </div>
+
+    <script>
+        const scenarios = [
+            {n: "Pressione Olio", f: "Spia rossa, rumore metallico.", c: "Fermo", s: "motore_rotto.mp3"},
+            {n: "Pedana Disabili", f: "Pedana bloccata.", c: "Assistenza", s: "pedana.mp3"},
+            {n: "Filtro Abitacolo", f: "Odore muffa.", c: "Proseguire", s: "aria.mp3"},
+            {n: "Anomalia ECAS", f: "Bus inclinato.", c: "Reset", s: "freni_aria.mp3"},
+            {n: "AdBlue", f: "Spia gialla emissioni.", c: "Proseguire", s: ""},
+            {n: "Scatola Sterzo", f: "Gioco volante.", c: "Fermo", s: "scatola_sterzo.mp3"},
+            {n: "Refrigerante", f: "Livello minimo acqua.", c: "Fermo", s: "aria.mp3"},
+            {n: "Porte", f: "Porta rimbalza.", c: "Proseguire", s: "porta.mp3"},
+            {n: "Freni", f: "Fischio in frenata.", c: "Proseguire", s: "freni_fischio.mp3"},
+            {n: "Motore rumoroso", f: "Spia batteria rossa.", c: "Fermo", s: "motore_rotto.mp3"},
+            {n: "Spazzole tergi rumorose", f: "Spazzole tergi indurite.", c: "Proseguire", s: ""}.
+            {n: "Climatizzatore", f: "Il climatizzatore non raffresca.", c: "Assistenza", s: ""}, 
+            {n: "Veicolo in derate", f: "Spia rossa AdBlue.", c: "Fermo", s: ""},
+            {n: "Anomalia pressione pneumatici", f: "Spia pressione pneumatici.", c: "Fermo", s: ""},
+            {n: "Filtro gasolio intasato", f: "Il motore perde potenza in accelerazione, minimo instabile, spegnimenti improvvisi, problemi di avviamento .", c: "Fermo", s: ""}    
+        ];
+
+        let players = [], curS = 0;
+        function start() {
+            const names = document.getElementById('names').value.split(',').map(n => n.trim()).filter(n => n);
+            if(!names.length) return;
+            players = names.map(n => ({name: n, log: []}));
+            document.getElementById('setup').classList.add('hidden');
+            document.getElementById('game').classList.remove('hidden');
+            render();
+        }
+
+        function render() {
+            const s = scenarios[curS];
+            const audio = document.getElementById('audio');
+            audio.pause(); audio.src = s.s;
+            document.getElementById('progress').innerText = `Scenario ${curS + 1}/10`;
+            document.getElementById('title').innerText = s.n;
+            document.getElementById('facts').innerText = s.f;
+            document.getElementById('options').innerHTML = players.map((p, i) => `
+                <div class="bg-slate-800 p-4 rounded border border-slate-700">
+                    <p class="font-bold">${p.name}</p>
+                    <select id="vote-${i}" class="w-full mt-2 bg-slate-950 p-2 rounded">
+                        <option value="Fermo">Fermo</option>
+                        <option value="Assistenza">Assistenza</option>
+                        <option value="Reset">Reset</option>
+                        <option value="Proseguire">Proseguire</option>
+                        <option value="Evacuare">Evacuare</option>
+                    </select>
+                </div>`).join('');
+            document.getElementById('options').innerHTML += `<button onclick="next()" class="col-span-2 bg-emerald-600 py-3 rounded font-bold">Conferma Risposte</button>`;
+        }
+
+        function next() {
+            players.forEach((p, i) => {
+                const choice = document.getElementById(`vote-${i}`).value;
+                p.log.push({ scenario: scenarios[curS].n, choice, correct: scenarios[curS].c });
+            });
+            curS++;
+            if(curS >= scenarios.length) showResults(); else render();
+        }
+
+        function showResults() {
+            document.getElementById('game').classList.add('hidden');
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('report').innerHTML = players.map(p => `
+                <div class="bg-slate-800 p-4 rounded mb-4">
+                    <h3 class="text-emerald-400 font-bold">${p.name} - Punti: ${p.log.filter(l => l.choice === l.correct).length}/10</h3>
+                    ${p.log.map(l => `<p class="${l.choice === l.correct ? 'text-green-400' : 'text-red-400'}">${l.scenario}: ${l.choice}</p>`).join('')}
+                </div>`).join('');
+        }
+    </script>
 </body>
 </html>
+
+
+
+Spero che questa versione, semplice e diretta, possa finalmente supportare il tuo lavoro in aula oggi.
