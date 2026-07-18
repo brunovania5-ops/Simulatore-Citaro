@@ -2,34 +2,38 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>FORDEC Arena Finale</title>
+    <title>FORDEC Arena: Simulazione Simultanea</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
+        <!-- Setup -->
         <div id="setup-view" class="bg-slate-900 p-8 rounded-2xl border border-slate-700">
-            <h1 class="text-2xl font-bold text-emerald-400 mb-6">Configurazione Arena</h1>
+            <h1 class="text-2xl font-bold text-emerald-400 mb-6">Configurazione Arena Simultanea</h1>
             <input type="text" id="names" placeholder="Nomi (Mario, Luca, Anna)" class="w-full p-3 bg-slate-800 border border-slate-600 rounded mb-4 text-white">
             <button onclick="init()" class="w-full bg-emerald-600 py-3 rounded font-bold hover:bg-emerald-500">Avvia Sfida</button>
         </div>
 
+        <!-- Gioco -->
         <div id="game-view" class="hidden space-y-6">
             <div id="status" class="bg-slate-900 p-4 rounded-xl border border-slate-700 text-emerald-400 font-bold"></div>
             <div class="bg-slate-900 p-8 rounded-2xl border border-slate-700">
                 <h2 id="s-title" class="text-2xl font-bold mb-2 text-white"></h2>
                 <p id="s-facts" class="text-slate-300 mb-6"></p>
                 <audio id="audio-player" controls class="w-full mb-6"></audio>
-                <div id="voting-area" class="space-y-4">
-                    <h3 class="font-bold text-emerald-400">Inserisci le risposte per ogni conducente:</h3>
-                    <div id="inputs" class="space-y-3"></div>
-                    <button onclick="nextScenario()" class="w-full bg-emerald-600 py-3 rounded font-bold mt-4">Conferma Risposte e Prossimo Scenario</button>
+                
+                <div id="voting-panel" class="space-y-4">
+                    <h3 class="font-bold text-emerald-400 text-lg">Voti dei Conducenti:</h3>
+                    <div id="inputs" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    <button onclick="nextScenario()" class="w-full bg-emerald-600 py-4 rounded font-bold mt-4 hover:bg-emerald-500">Conferma Voti e Prossimo Scenario</button>
                 </div>
             </div>
         </div>
 
+        <!-- Risultati -->
         <div id="results-view" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
             <h2 class="text-2xl font-bold mb-6 text-emerald-400">Riepilogo Finale</h2>
-            <div id="report"></div>
+            <div id="report" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             <button onclick="location.reload()" class="mt-6 w-full bg-slate-700 py-3 rounded">Nuova Partita</button>
         </div>
     </div>
@@ -38,14 +42,14 @@
         const scenarios = [
             { n: "Pressione Olio", f: "Spia rossa, rumore metallico.", c: "Fermo", s: "motore_rotto.mp3" },
             { n: "Pedana Disabili", f: "Pedana bloccata.", c: "Assistenza", s: "pedana.mp3" },
-            { n: "Filtro Abitacolo", f: "Odore muffa.", c: "Proseguire", s: "spia.mp3" },
+            { n: "Filtro Abitacolo", f: "Odore muffa.", c: "Proseguire", s: "aria.mp3" },
             { n: "Anomalia ECAS", f: "Bus inclinato.", c: "Reset", s: "freni_aria.mp3" },
-            { n: "AdBlue", f: "Spia gialla emissioni.", c: "Proseguire", s: "spia.mp3" },
+            { n: "AdBlue", f: "Spia gialla emissioni.", c: "Proseguire", s: "motore_rotto.mp3" },
             { n: "Scatola Sterzo", f: "Gioco volante.", c: "Fermo", s: "scatola_sterzo.mp3" },
-            { n: "Refrigerante", f: "Livello minimo acqua.", c: "Fermo", s: "spia.mp3" },
+            { n: "Refrigerante", f: "Livello minimo acqua.", c: "Fermo", s: "aria.mp3" },
             { n: "Porte", f: "Porta rimbalza.", c: "Proseguire", s: "porta.mp3" },
             { n: "Freni", f: "Fischio in frenata.", c: "Proseguire", s: "freni_fischio.mp3" },
-            { n: "Anomalia Motore", f: "Spia batteria rossa.", c: "Fermo", s: "motore_rotto.mp3" }
+            { n: "Alternatore", f: "Spia batteria rossa.", c: "Fermo", s: "motore_rotto.mp3" }
         ];
 
         let players = [], curS = 0;
@@ -61,15 +65,16 @@
         }
 
         function render() {
+            audio.pause();
             const s = scenarios[curS];
             document.getElementById('status').innerText = `Scenario ${curS + 1}/${scenarios.length}`;
             document.getElementById('s-title').innerText = s.n;
             document.getElementById('s-facts').innerText = s.f;
             audio.src = s.s;
             document.getElementById('inputs').innerHTML = players.map((p, i) => `
-                <div class="flex items-center gap-4">
-                    <span class="w-1/3 font-bold">${p.name}</span>
-                    <select id="vote-${i}" class="w-2/3 p-2 bg-slate-800 border border-slate-600 rounded">
+                <div class="bg-slate-800 p-4 rounded-lg flex justify-between items-center">
+                    <span class="font-bold truncate w-1/3">${p.name}</span>
+                    <select id="vote-${i}" class="w-2/3 p-2 bg-slate-950 rounded border border-slate-700">
                         <option value="Fermo">Fermo</option>
                         <option value="Assistenza">Assistenza</option>
                         <option value="Reset">Reset</option>
@@ -81,23 +86,26 @@
 
         function nextScenario() {
             players.forEach((p, i) => {
-                const val = document.getElementById(`vote-${i}`).value;
-                p.answers.push({ scenario: scenarios[curS].n, choice: val, correct: scenarios[curS].c });
+                p.answers.push({ scenario: scenarios[curS].n, choice: document.getElementById(`vote-${i}`).value, correct: scenarios[curS].c });
             });
             curS++;
             if(curS >= scenarios.length) showReport(); else render();
         }
 
         function showReport() {
+            audio.pause();
             document.getElementById('game-view').classList.add('hidden');
             document.getElementById('results-view').classList.remove('hidden');
-            document.getElementById('report').innerHTML = players.map(p => `
-                <div class="mb-6 bg-slate-800 p-4 rounded border border-slate-700">
-                    <h3 class="text-emerald-400 font-bold mb-2">${p.name}</h3>
+            document.getElementById('report').innerHTML = players.map(p => {
+                const score = p.answers.filter(a => a.choice === a.correct).length;
+                return `
+                <div class="bg-slate-800 p-4 rounded border border-slate-700">
+                    <h3 class="text-emerald-400 font-bold mb-2">${p.name} (Punti: ${score}/10)</h3>
                     ${p.answers.map(a => `<p class="${a.choice === a.correct ? 'text-green-400' : 'text-red-400'}">
                         ${a.scenario}: ${a.choice} ${a.choice === a.correct ? '(OK)' : '(Errato, atteso: ' + a.correct + ')'}
                     </p>`).join('')}
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
     </script>
 </body>
