@@ -2,25 +2,27 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>FORDEC Arena Finale</title>
+    <title>FORDEC Arena Finale - 10 Scenari</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
         <div id="setup-view" class="bg-slate-900 p-8 rounded-2xl border border-slate-700">
-            <h1 class="text-2xl font-bold text-emerald-400 mb-6">FORDEC Arena: Sfida Finale</h1>
-            <input type="text" id="names" placeholder="Nomi (es: Mario, Luca)" class="w-full p-3 bg-slate-800 border border-slate-600 rounded mb-4 text-white">
-            <button onclick="init()" class="w-full bg-emerald-600 py-3 rounded font-bold hover:bg-emerald-500">Avvia Sfida</button>
+            <h1 class="text-2xl font-bold text-emerald-400 mb-6">Configurazione Arena (10 Scenari)</h1>
+            <input type="text" id="names" placeholder="Nomi (Mario, Luca, Anna)" class="w-full p-3 bg-slate-800 border border-slate-600 rounded mb-4 text-white">
+            <button onclick="init()" class="w-full bg-emerald-600 py-3 rounded font-bold">Avvia Sfida</button>
         </div>
 
-        <div id="game-view" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
-            <div id="status" class="text-emerald-400 font-bold mb-4"></div>
-            <h2 id="s-title" class="text-2xl font-bold mb-2"></h2>
-            <p id="s-facts" class="text-slate-300 mb-6"></p>
-            <audio id="audio-player" controls class="w-full mb-6"></audio>
-            <div id="voting-panel" class="space-y-4">
-                <h3 id="current-voter" class="font-bold text-lg"></h3>
-                <div id="actions" class="grid grid-cols-2 gap-3"></div>
+        <div id="game-view" class="hidden space-y-6">
+            <div id="status" class="bg-slate-900 p-4 rounded-xl border border-slate-700 text-emerald-400 font-bold"></div>
+            <div class="bg-slate-900 p-8 rounded-2xl border border-slate-700">
+                <h2 id="s-title" class="text-2xl font-bold mb-2 text-white"></h2>
+                <p id="s-facts" class="text-slate-300 mb-6"></p>
+                <div id="audio-container" class="mb-6"></div>
+                <div id="voting-area" class="space-y-4">
+                    <h3 id="voter-name" class="font-bold text-emerald-400"></h3>
+                    <div id="actions" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+                </div>
             </div>
         </div>
 
@@ -33,20 +35,19 @@
 
     <script>
         const scenarios = [
-            { n: "Scoppio Pneumatico", f: "Botta 70km/h, tira a destra.", c: "Fermo", s: "scoppio.mp3" },
-            { n: "Incendio Motore", f: "Spia STOP, fumo posteriore.", c: "Evacuare", s: "incendio.mp3" },
-            { n: "Anomalia ECAS", f: "Bus inclinato.", c: "Reset", s: "freni_aria.mp3" },
-            { n: "Pressione Olio", f: "Spia rossa, rumore.", c: "Fermo", s: "motore_rotto.mp3" },
+            { n: "Pressione Olio", f: "Spia rossa, rumore metallico.", c: "Fermo", s: "motore_rotto.mp3" },
             { n: "Pedana Disabili", f: "Pedana bloccata.", c: "Assistenza", s: "pedana.mp3" },
-            { n: "Cinghia Servizi", f: "Spia batteria, fischio.", c: "Fermo", s: "cinghia_slitta.mp3" },
-            { n: "Freni stridenti", f: "Spia EBS, fischio.", c: "Proseguire", s: "freni_fischio.mp3" },
-            { n: "Scatola Sterzo", f: "Gioco eccessivo.", c: "Fermo", s: "scatola_sterzo.mp3" },
-            { n: "Rumore Ruota", f: "Vibrazione al volante.", c: "Assistenza", s: "cuscinetto_ruota.mp3" },
-            { n: "Bus Inclinato", f: "Rumorosità ECAS.", c: "Reset", s: "barra_stabilizzatrice.mp3" }
+            { n: "Filtro Abitacolo", f: "Odore muffa.", c: "Proseguire", s: "aria.mp3" },
+            { n: "Anomalia ECAS", f: "Bus inclinato.", c: "Reset", s: "freni_aria.mp3" },
+            { n: "AdBlue", f: "Spia gialla emissioni.", c: "Proseguire", s: "motore_rotto.mp3" },
+            { n: "Scatola Sterzo", f: "Gioco volante.", c: "Fermo", s: "scatola_sterzo.mp3" },
+            { n: "Refrigerante", f: "Livello minimo acqua.", c: "Fermo", s: "aria.mp3" },
+            { n: "Porte", f: "Porta rimbalza.", c: "Proseguire", s: "porta.mp3" },
+            { n: "Freni", f: "Fischio in frenata.", c: "Proseguire", s: "freni_fischio.mp3" },
+            { n: "Alternatore", f: "Spia batteria rossa.", c: "Fermo", s: "motore_rotto.mp3" }
         ];
 
         let players = [], curS = 0, curP = 0;
-        const audio = document.getElementById('audio-player');
 
         function init() {
             const names = document.getElementById('names').value.split(',').map(n => n.trim()).filter(n => n);
@@ -58,29 +59,35 @@
         }
 
         function render() {
-            audio.pause();
-            audio.src = scenarios[curS].s;
-            audio.load();
+            const s = scenarios[curS];
             document.getElementById('status').innerText = `Scenario ${curS + 1}/${scenarios.length}`;
-            document.getElementById('s-title').innerText = scenarios[curS].n;
-            document.getElementById('s-facts').innerText = scenarios[curS].f;
-            document.getElementById('current-voter').innerText = `Tocca a: ${players[curP].name}`;
-            document.getElementById('actions').innerHTML = ["Fermo", "Assistenza", "Evacuare", "Reset", "Proseguire"].map(o => 
+            document.getElementById('s-title').innerText = s.n;
+            document.getElementById('s-facts').innerText = s.f;
+            document.getElementById('voter-name').innerText = `Vota: ${players[curP].name}`;
+            
+            // Forza il reset audio
+            document.getElementById('audio-container').innerHTML = `<audio controls src="${s.s}" class="w-full"></audio>`;
+            
+            document.getElementById('actions').innerHTML = ["Fermo", "Assistenza", "Reset", "Proseguire"].map(o => 
                 `<button onclick="vote('${o}')" class="p-4 bg-slate-800 border border-slate-600 rounded hover:bg-emerald-900">${o}</button>`).join('');
         }
 
         function vote(choice) {
             players[curP].answers.push({ scenario: scenarios[curS].n, choice, correct: scenarios[curS].c });
             curP++;
-            if(curP >= players.length) { 
-                curP = 0; 
-                curS++; 
+            
+            // Se tutti i giocatori hanno risposto allo scenario corrente, passa allo scenario successivo
+            if (curP >= players.length) {
+                curP = 0;
+                curS++;
             }
-            if(curS >= scenarios.length) showReport(); else render();
+            
+            // Se finiti gli scenari, mostra risultati
+            if (curS >= scenarios.length) showReport(); 
+            else render();
         }
 
         function showReport() {
-            audio.pause();
             document.getElementById('game-view').classList.add('hidden');
             document.getElementById('results-view').classList.remove('hidden');
             document.getElementById('report').innerHTML = players.map(p => `
@@ -89,7 +96,7 @@
                     ${p.answers.map(a => `<p class="${a.choice === a.correct ? 'text-green-400' : 'text-red-400'}">
                         ${a.scenario}: ${a.choice} ${a.choice === a.correct ? '(OK)' : '(Errato, atteso: ' + a.correct + ')'}
                     </p>`).join('')}
-                </div>`).join('');
+                </div>`).join('').replace(/<[^>]*>/g, ''); // Pulizia semplice
         }
     </script>
 </body>
