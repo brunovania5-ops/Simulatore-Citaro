@@ -2,104 +2,67 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>FORDEC Arena - Docente Gestisce</title>
+    <title>FORDEC Docente - 10 Scenari</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-white min-h-screen p-8">
-    <div class="max-w-4xl mx-auto">
-        <div id="setup" class="bg-slate-900 p-8 rounded-2xl border border-slate-700">
-            <h1 class="text-3xl font-bold text-emerald-400 mb-6">Configurazione Aula</h1>
-            <input type="text" id="names" placeholder="Inserisci i nomi dei conducenti separati da virgola" class="w-full p-3 bg-slate-800 rounded border border-slate-600 mb-4 text-white">
-            <button onclick="start()" class="w-full bg-emerald-600 py-3 rounded font-bold">Avvia Simulatore</button>
-        </div>
-
-        <div id="game" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
-            <div id="progress" class="text-emerald-400 font-bold mb-4"></div>
-            <h2 id="title" class="text-3xl font-bold mb-4"></h2>
-            <p id="facts" class="text-lg text-slate-300 mb-8"></p>
-            <audio id="audio" controls class="w-full mb-8"></audio>
-            <div id="options" class="grid grid-cols-2 gap-4"></div>
-        </div>
-
-        <div id="results" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
-            <h2 class="text-2xl font-bold text-emerald-400 mb-6">Riepilogo Finale</h2>
-            <div id="report"></div>
-            <button onclick="location.reload()" class="mt-6 w-full bg-slate-700 py-3 rounded font-bold">Nuova Sessione</button>
-        </div>
+<body class="bg-slate-950 text-white p-8">
+    <div id="app" class="max-w-2xl mx-auto bg-slate-900 p-8 rounded-2xl border border-slate-700">
+        <!-- Contenuto dinamico -->
     </div>
 
     <script>
         const scenarios = [
-            {n: "Pressione Olio", f: "Spia rossa, rumore metallico.", c: "Fermo", s: "motore_rotto.mp3"},
-            {n: "Pedana Disabili", f: "Pedana bloccata.", c: "Assistenza", s: "pedana.mp3"},
-            {n: "Filtro Abitacolo", f: "Odore muffa.", c: "Proseguire", s: "aria.mp3"},
-            {n: "Anomalia ECAS", f: "Bus inclinato.", c: "Reset", s: "freni_aria.mp3"},
-            {n: "AdBlue", f: "Spia gialla emissioni.", c: "Proseguire", s: ""},
-            {n: "Scatola Sterzo", f: "Gioco volante.", c: "Fermo", s: "scatola_sterzo.mp3"},
-            {n: "Refrigerante", f: "Livello minimo acqua.", c: "Fermo", s: "aria.mp3"},
-            {n: "Porte", f: "Porta rimbalza.", c: "Proseguire", s: "porta.mp3"},
-            {n: "Freni", f: "Fischio in frenata.", c: "Proseguire", s: "freni_fischio.mp3"},
-            {n: "Motore rumoroso", f: "Spia batteria rossa.", c: "Fermo", s: "motore_rotto.mp3"},
-            {n: "Spazzole tergi rumorose", f: "Spazzole tergi indurite.", c: "Proseguire", s: ""}.
-            {n: "Climatizzatore", f: "Il climatizzatore non raffresca.", c: "Assistenza", s: ""}, 
-            {n: "Veicolo in derate", f: "Spia rossa AdBlue.", c: "Fermo", s: ""},
-            {n: "Anomalia pressione pneumatici", f: "Spia pressione pneumatici.", c: "Fermo", s: ""},
-            {n: "Filtro gasolio intasato", f: "Il motore perde potenza in accelerazione, minimo instabile, spegnimenti improvvisi, problemi di avviamento .", c: "Fermo", s: ""}    
+            {n: "Pressione Olio", f: "Spia rossa, rumore metallico.", c: "Fermo"},
+            {n: "Pedana Disabili", f: "Pedana bloccata.", c: "Assistenza"},
+            {n: "Filtro Abitacolo", f: "Odore muffa.", c: "Proseguire"},
+            {n: "Anomalia ECAS", f: "Bus inclinato.", c: "Reset"},
+            {n: "AdBlue", f: "Spia gialla emissioni.", c: "Proseguire"},
+            {n: "Scatola Sterzo", f: "Gioco volante.", c: "Fermo"},
+            {n: "Refrigerante", f: "Livello minimo acqua.", c: "Fermo"},
+            {n: "Porte", f: "Porta rimbalza.", c: "Proseguire"},
+            {n: "Freni", f: "Fischio in frenata.", c: "Proseguire"},
+            {n: "Spazzole tergi rumorose", f: "Spazzole tergi indurite.", c: "Proseguire"}.
+            {n: "Anomalia Climatizzatore", f: "Il climatizzatore non raffresca.", c: "Assistenza"}, 
+            {n: "Veicolo in derate", f: "Spia rossa AdBlue.", c: "Fermo"},
+            {n: "Anomalia pressione pneumatici", f: "Spia pressione pneumatici.", c: "Fermo"},
+            {n: "Filtro gasolio intasato", f: "Il motore perde potenza in accelerazione, minimo instabile, spegnimenti improvvisi, problemi di avviamento .", c: "Fermo"}    
+{n: "       {n: "Liquido tergicristalli", f: "Livello minimo del liquido tergicristalli.", c: "Proseguire"},
+            {n: "Problema al motore", f: "Spia batteria rossa.", c: "Fermo"}
         ];
 
-        let players = [], curS = 0;
-        function start() {
-            const names = document.getElementById('names').value.split(',').map(n => n.trim()).filter(n => n);
-            if(!names.length) return;
-            players = names.map(n => ({name: n, log: []}));
-            document.getElementById('setup').classList.add('hidden');
-            document.getElementById('game').classList.remove('hidden');
+        let curS = 0;
+        let results = [];
+
+        function render() {
+            if(curS >= scenarios.length) {
+                document.getElementById('app').innerHTML = `
+                    <h2 class="text-2xl font-bold text-emerald-400 mb-6">Riepilogo Finale</h2>
+                    ${results.map(r => `<p class="mb-2 ${r.ok ? 'text-green-400' : 'text-red-400'}">${r.n}: ${r.scelta} (${r.ok ? 'Corretto' : 'Errato, atteso: ' + r.c})</p>`).join('')}
+                    <button onclick="location.reload()" class="mt-6 w-full bg-slate-700 py-3 rounded">Nuova Sessione</button>
+                `;
+                return;
+            }
+            const s = scenarios[curS];
+            document.getElementById('app').innerHTML = `
+                <div class="text-emerald-400 font-bold mb-2">Scenario ${curS + 1}/10</div>
+                <h1 class="text-3xl font-bold mb-4">${s.n}</h1>
+                <p class="text-lg text-slate-300 mb-8">${s.f}</p>
+                <div class="grid gap-4">
+                    ${["Fermo", "Assistenza", "Reset", "Proseguire", "Evacuare"].map(o => 
+                        `<button onclick="submit('${o}')" class="p-4 bg-slate-800 hover:bg-emerald-800 border border-slate-600 rounded text-left font-bold transition">${o}</button>`
+                    ).join('')}
+                </div>
+            `;
+        }
+
+        function submit(scelta) {
+            const s = scenarios[curS];
+            results.push({n: s.n, scelta: scelta, c: s.c, ok: scelta === s.c});
+            curS++;
             render();
         }
 
-        function render() {
-            const s = scenarios[curS];
-            const audio = document.getElementById('audio');
-            audio.pause(); audio.src = s.s;
-            document.getElementById('progress').innerText = `Scenario ${curS + 1}/10`;
-            document.getElementById('title').innerText = s.n;
-            document.getElementById('facts').innerText = s.f;
-            document.getElementById('options').innerHTML = players.map((p, i) => `
-                <div class="bg-slate-800 p-4 rounded border border-slate-700">
-                    <p class="font-bold">${p.name}</p>
-                    <select id="vote-${i}" class="w-full mt-2 bg-slate-950 p-2 rounded">
-                        <option value="Fermo">Fermo</option>
-                        <option value="Assistenza">Assistenza</option>
-                        <option value="Reset">Reset</option>
-                        <option value="Proseguire">Proseguire</option>
-                        <option value="Evacuare">Evacuare</option>
-                    </select>
-                </div>`).join('');
-            document.getElementById('options').innerHTML += `<button onclick="next()" class="col-span-2 bg-emerald-600 py-3 rounded font-bold">Conferma Risposte</button>`;
-        }
-
-        function next() {
-            players.forEach((p, i) => {
-                const choice = document.getElementById(`vote-${i}`).value;
-                p.log.push({ scenario: scenarios[curS].n, choice, correct: scenarios[curS].c });
-            });
-            curS++;
-            if(curS >= scenarios.length) showResults(); else render();
-        }
-
-        function showResults() {
-            document.getElementById('game').classList.add('hidden');
-            document.getElementById('results').classList.remove('hidden');
-            document.getElementById('report').innerHTML = players.map(p => `
-                <div class="bg-slate-800 p-4 rounded mb-4">
-                    <h3 class="text-emerald-400 font-bold">${p.name} - Punti: ${p.log.filter(l => l.choice === l.correct).length}/10</h3>
-                    ${p.log.map(l => `<p class="${l.choice === l.correct ? 'text-green-400' : 'text-red-400'}">${l.scenario}: ${l.choice}</p>`).join('')}
-                </div>`).join('');
-        }
+        render();
     </script>
 </body>
 </html>
-
-
-
-Spero che questa versione, semplice e diretta, possa finalmente supportare il tuo lavoro in aula oggi.
