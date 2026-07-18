@@ -2,90 +2,84 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>FORDEC Challenge Suite PRO</title>
+    <title>FORDEC Multiplayer Arena</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
-        <!-- Setup View -->
-        <div id="setup-view" class="bg-slate-900 p-8 rounded-2xl border border-slate-700">
-            <h1 class="text-2xl font-bold text-emerald-400 mb-6">FORDEC Challenge Suite</h1>
-            <input type="text" id="player-names" placeholder="Nomi (es: Mario, Luca, Anna)" class="w-full p-3 bg-slate-800 border border-slate-600 rounded mb-4">
-            <button onclick="startChallenge()" class="w-full bg-emerald-600 py-3 rounded font-bold hover:bg-emerald-500">Avvia Sfida Multiplayer</button>
+        <div id="setup" class="bg-slate-900 p-8 rounded-2xl border border-slate-700">
+            <h1 class="text-2xl font-bold text-emerald-400 mb-6">FORDEC Multiplayer Arena</h1>
+            <input type="text" id="names" placeholder="Nomi (es: Mario, Luca)" class="w-full p-3 bg-slate-800 border border-slate-600 rounded mb-4 text-white">
+            <button onclick="init()" class="w-full bg-emerald-600 py-3 rounded font-bold hover:bg-emerald-500">Avvia Sfida</button>
         </div>
 
-        <!-- Game View -->
-        <div id="game-view" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
-            <div id="turn-display" class="text-emerald-400 font-bold mb-4"></div>
-            <h2 id="scenario-title" class="text-xl font-bold mb-2"></h2>
-            <p id="scenario-facts" class="text-slate-300 mb-6"></p>
+        <div id="game" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
+            <div id="status" class="text-emerald-400 font-bold mb-4"></div>
+            <h2 id="s-n" class="text-xl font-bold mb-2"></h2>
+            <p id="s-f" class="text-slate-300 mb-6"></p>
             <div id="audio-box" class="mb-6"></div>
-            <div id="actions" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
-            <div id="fordec-box" class="hidden mt-6 p-4 bg-slate-800 border-l-4 border-emerald-500 rounded">
-                <h3 class="font-bold mb-2">Analisi FORDEC</h3>
-                <p id="fordec-text" class="text-slate-300"></p>
-                <button onclick="nextTurn()" class="mt-4 w-full bg-emerald-700 py-2 rounded hover:bg-emerald-600">Prossimo</button>
-            </div>
+            <div id="actions" class="grid grid-cols-2 gap-3"></div>
         </div>
 
-        <!-- Results View -->
-        <div id="results-view" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
+        <div id="results" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
             <h2 class="text-2xl font-bold mb-6 text-emerald-400">Riepilogo Finale</h2>
-            <div id="final-report"></div>
+            <div id="report"></div>
+            <button onclick="location.reload()" class="mt-6 w-full bg-slate-700 py-3 rounded">Nuova Partita</button>
         </div>
     </div>
 
     <script>
         const scenarios = [
-            { n: "Pressione Olio", f: "Spia rossa, rumore metallico.", c: "Fermo", a: "F: Pressione 0. O: Fermo. R: Grippaggio. D: Fermo immediato.", s: "motore_rotto.mp3" },
-            { n: "Cinghia Servizi", f: "Spia batteria, fischio.", c: "Fermo", a: "F: Perdita servizi. O: Fermo. D: Fermo obbligatorio.", s: "cinghia_slitta.mp3" }
+            { n: "Scoppio Pneumatico", f: "Botta 70km/h, tira a destra.", c: "Fermo", s: "scoppio.mp3" },
+            { n: "Incendio Motore", f: "Spia STOP, fumo posteriore.", c: "Evacuare", s: "incendio.mp3" },
+            { n: "Anomalia ECAS", f: "Bus inclinato.", c: "Reset", s: "freni_aria.mp3" },
+            { n: "Pressione Olio", f: "Spia rossa, rumore.", c: "Fermo", s: "motore_rotto.mp3" },
+            { n: "Pedana Disabili", f: "Pedana bloccata.", c: "Assistenza", s: "pedana.mp3" },
+            { n: "Cinghia Servizi", f: "Spia batteria, fischio.", c: "Fermo", s: "cinghia_slitta.mp3" }
         ];
 
-        let players = [], curP = 0, curS = 0;
+        let players = [], curS = 0, curP = 0;
         const audio = new Audio();
 
-        function startChallenge() {
-            const names = document.getElementById('player-names').value.split(',').map(n => n.trim()).filter(n => n);
-            if(names.length < 1) return;
-            players = names.map(n => ({ name: n, log: [] }));
-            document.getElementById('setup-view').classList.add('hidden');
-            document.getElementById('game-view').classList.remove('hidden');
+        function init() {
+            const names = document.getElementById('names').value.split(',').map(n => n.trim()).filter(n => n);
+            if(names.length === 0) return;
+            players = names.map(n => ({ name: n, answers: [] }));
+            document.getElementById('setup').classList.add('hidden');
+            document.getElementById('game').classList.remove('hidden');
             render();
         }
 
         function render() {
+            audio.pause();
             const s = scenarios[curS];
-            document.getElementById('turn-display').innerText = `Tocca a: ${players[curP].name} | Scenario ${curS + 1}/${scenarios.length}`;
-            document.getElementById('scenario-title').innerText = s.n;
-            document.getElementById('scenario-facts').innerText = s.f;
-            document.getElementById('fordec-box').classList.add('hidden');
-            document.getElementById('audio-box').innerHTML = s.s ? `<button onclick="audio.src='${s.s}'; audio.play();" class="bg-blue-900 px-4 py-2 rounded text-blue-200">🔊 Riproduci Traccia</button>` : "";
-            document.getElementById('actions').innerHTML = ["Fermo", "Assistenza", "Segnala"].map(o => `<button onclick="check('${o}')" class="p-4 bg-slate-800 border border-slate-600 rounded hover:bg-emerald-900">${o}</button>`).join('');
+            document.getElementById('status').innerText = `Scenario ${curS + 1}/${scenarios.length} | Tocca a: ${players[curP].name}`;
+            document.getElementById('s-n').innerText = s.n;
+            document.getElementById('s-f').innerText = s.f;
+            document.getElementById('audio-box').innerHTML = `<button onclick="playA('${s.s}')" class="bg-blue-600 px-4 py-2 rounded">🔊 Riproduci Traccia</button>`;
+            document.getElementById('actions').innerHTML = ["Fermo", "Assistenza", "Evacuare", "Reset"].map(o => `<button onclick="vote('${o}')" class="p-4 bg-slate-800 border border-slate-600 rounded hover:bg-emerald-900">${o}</button>`).join('');
         }
 
-        function check(choice) {
-            const s = scenarios[curS];
-            players[curP].log.push({ sc: s.n, ch: choice, cor: s.c, ok: choice === s.c });
-            document.getElementById('fordec-text').innerText = s.a;
-            document.getElementById('fordec-box').classList.remove('hidden');
-            document.getElementById('actions').innerHTML = "";
-        }
+        function playA(file) { audio.src = file; audio.play(); }
 
-        function nextTurn() {
+        function vote(choice) {
+            players[curP].answers.push({ scenario: scenarios[curS].n, choice, correct: scenarios[curS].c });
             curP++;
             if(curP >= players.length) { curP = 0; curS++; }
-            if(curS >= scenarios.length) showResults(); else render();
+            if(curS >= scenarios.length) showReport(); else render();
         }
 
-        function showResults() {
-            document.getElementById('game-view').classList.add('hidden');
-            document.getElementById('results-view').classList.remove('hidden');
-            document.getElementById('final-report').innerHTML = players.map(p => `
-                <div class="mb-6 bg-slate-800 p-4 rounded">
-                    <h3 class="font-bold text-emerald-400 mb-2">${p.name}</h3>
-                    ${p.log.map(l => `<p class="${l.ok ? 'text-emerald-300' : 'text-red-300'}">${l.sc}: Scelto "${l.ch}" (${l.ok ? 'Corretto' : 'Errato, atteso: ' + l.cor})</p>`).join('')}
+        function showReport() {
+            document.getElementById('game').classList.add('hidden');
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('report').innerHTML = players.map(p => `
+                <div class="mb-4 bg-slate-800 p-4 rounded">
+                    <h3 class="text-emerald-400 font-bold">${p.name}</h3>
+                    ${p.answers.map(a => `<p class="${a.choice === a.correct ? 'text-green-400' : 'text-red-400'}">${a.scenario}: ${a.choice} (${a.choice === a.correct ? 'OK' : 'Errato, atteso: ' + a.correct})</p>`).join('')}
                 </div>`).join('');
         }
     </script>
 </body>
 </html>
+```eof
