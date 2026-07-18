@@ -2,23 +2,24 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FORDEC Master Controller</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-4 flex flex-col items-center">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 flex flex-col items-center font-sans">
 
     <div class="max-w-xl w-full" id="app">
-        <!-- Setup -->
+        <!-- Setup View -->
         <div id="view-setup" class="bg-slate-900 p-8 rounded-2xl border border-slate-700 shadow-2xl">
-            <h1 class="text-2xl font-bold text-emerald-400 mb-6">FORDEC Multiplayer Master</h1>
-            <input type="text" id="player-name" placeholder="Nome Conducente" class="w-full p-3 bg-slate-800 border border-slate-600 rounded mb-4">
-            <button onclick="joinGame()" class="w-full bg-emerald-600 py-3 rounded font-bold hover:bg-emerald-500">Inizia Sessione</button>
+            <h1 class="text-2xl font-bold text-emerald-400 mb-6">FORDEC Master Controller</h1>
+            <input type="text" id="player-name" placeholder="Nome Conducente/Aula" class="w-full p-3 bg-slate-800 border border-slate-600 rounded mb-4 focus:ring-2 focus:ring-emerald-500 outline-none">
+            <button onclick="joinGame()" class="w-full bg-emerald-600 py-3 rounded font-bold hover:bg-emerald-500 transition">Inizia Sessione</button>
             
             <div id="admin-panel" class="mt-10 border-t border-slate-700 pt-6">
                 <h3 class="text-slate-400 text-sm mb-4">Pannello Admin</h3>
-                <input type="password" id="admin-pass" placeholder="Password Admin" class="w-full p-2 bg-slate-800 border border-slate-600 rounded text-sm mb-2">
-                <button onclick="showAdmin()" class="w-full bg-slate-700 py-2 rounded text-sm hover:bg-slate-600">Visualizza Risultati Live</button>
+                <input type="password" id="admin-pass" placeholder="Password Admin" class="w-full p-2 bg-slate-800 border border-slate-600 rounded text-sm mb-2 focus:border-emerald-500 outline-none">
+                <button onclick="showAdmin()" class="w-full bg-slate-700 py-2 rounded text-sm hover:bg-slate-600 transition">Visualizza Risultati Live</button>
             </div>
 
             <div id="qr-container" class="mt-8 flex flex-col items-center">
@@ -27,10 +28,10 @@
             </div>
         </div>
 
-        <!-- Game -->
+        <!-- Game View -->
         <div id="view-game" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700">
             <div class="text-emerald-400 text-xs font-bold mb-2" id="progress">Scenario 1/6</div>
-            <h2 id="scenario-title" class="text-xl font-bold mb-4"></h2>
+            <h2 id="scenario-title" class="text-xl font-bold mb-4 text-white"></h2>
             <p id="scenario-facts" class="text-slate-300 mb-6"></p>
             <div id="options" class="grid gap-3"></div>
         </div>
@@ -39,17 +40,21 @@
         <div id="view-admin" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700 w-full">
             <h2 class="text-2xl font-bold text-emerald-400 mb-4">Risultati in Tempo Reale</h2>
             <div id="admin-results" class="space-y-2"></div>
-            <button onclick="location.reload()" class="mt-6 w-full bg-slate-700 py-2 rounded">Esci</button>
+            <button onclick="location.reload()" class="mt-6 w-full bg-slate-700 py-2 rounded hover:bg-slate-600">Esci</button>
         </div>
     </div>
 
     <script>
         const scenarios = [
-            { n: "Scoppio Pneumatico", f: "A 70km/h botto post. destro.", c: "Graduale", opts: ["Inchiodare", "Graduale"] },
-            { n: "Incendio Motore", f: "Fumo posteriore.", c: "Evacuare", opts: ["Aprire vano", "Evacuare"] }
+            { n: "Scoppio Pneumatico", f: "A 70km/h botto post. destro. Il bus tira a destra.", opts: ["Inchiodare", "Graduale"] },
+            { n: "Incendio Motore", f: "Spia STOP accesa. Fumo posteriore.", opts: ["Aprire vano", "Evacuare"] },
+            { n: "Anomalia ECAS", f: "Bus inclinato, nessuna spia rossa.", opts: ["Fermare linea", "Reset Bus"] },
+            { n: "Pressione Olio 0", f: "Spia rossa pressione olio. Rumore metallico.", opts: ["Proseguire", "Spegnere"] },
+            { n: "Pedana Disabili", f: "Pedana bloccata, passeggero attende.", opts: ["Proseguire", "Sblocco Manuale"] },
+            { n: "Cinghia Servizi", f: "Spia batteria rossa. Fischio acuto.", opts: ["Proseguire", "Fermarsi"] }
         ];
 
-        let state = { name: "", curS: 0, answers: [] };
+        let state = { name: "", curS: 0 };
         let allPlayers = JSON.parse(localStorage.getItem('fordec_data') || '[]');
 
         function joinGame() {
@@ -66,7 +71,7 @@
             document.getElementById('scenario-title').innerText = s.n;
             document.getElementById('scenario-facts').innerText = s.f;
             const optDiv = document.getElementById('options');
-            optDiv.innerHTML = s.opts.map(o => `<button onclick="handleAnswer('${o}')" class="p-4 bg-slate-800 border border-slate-600 rounded hover:bg-emerald-900">${o}</button>`).join('');
+            optDiv.innerHTML = s.opts.map(o => `<button onclick="handleAnswer('${o}')" class="p-4 bg-slate-800 border border-slate-600 rounded hover:bg-emerald-900 transition">${o}</button>`).join('');
         }
 
         function handleAnswer(ans) {
@@ -85,18 +90,10 @@
             document.getElementById('view-setup').classList.add('hidden');
             document.getElementById('view-admin').classList.remove('hidden');
             const res = document.getElementById('admin-results');
-            res.innerHTML = allPlayers.map(p => `<div class="bg-slate-800 p-2 rounded flex justify-between text-sm"><span>${p.name}</span><span>${p.answer}</span></div>`).join('');
+            res.innerHTML = allPlayers.length > 0 ? allPlayers.map(p => `<div class="bg-slate-800 p-2 rounded flex justify-between text-sm"><span>${p.name} (${p.scenario})</span><span class="text-emerald-400 font-bold">${p.answer}</span></div>`).join('') : "<p>Nessuna risposta ancora.</p>";
         }
 
         new QRCode(document.getElementById("qrcode"), window.location.href);
     </script>
 </body>
 </html>
-```
-
-### Note per il formatore:
-*   **Gestione in Tempo Reale:** Ho utilizzato `localStorage` per far sì che il browser del tuo computer (quello usato come "Master") memorizzi le risposte di tutti i dispositivi che si collegano allo stesso link.
-*   **Privacy:** Non servono account, basta il nome del conducente.
-*   **Aggiornamento:** Per vedere le nuove risposte nel pannello admin, basta che il formatore ri-clicchi "Visualizza Risultati Live" dopo che i conducenti hanno risposto.
-
-Spero che questa versione sia finalmente all'altezza delle tue necessità d'aula.
