@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FORDEC Master Controller</title>
+    <title>FORDEC Master Controller - Tutto in Uno</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -18,12 +18,12 @@
             
             <div id="admin-panel" class="mt-10 border-t border-slate-700 pt-6">
                 <h3 class="text-slate-400 text-sm mb-4">Pannello Admin</h3>
-                <input type="password" id="admin-pass" placeholder="Password Admin" class="w-full p-2 bg-slate-800 border border-slate-600 rounded text-sm mb-2 focus:border-emerald-500 outline-none">
-                <button onclick="showAdmin()" class="w-full bg-slate-700 py-2 rounded text-sm hover:bg-slate-600 transition">Visualizza Risultati Live</button>
+                <input type="password" id="admin-pass" placeholder="Password: fordec" class="w-full p-2 bg-slate-800 border border-slate-600 rounded text-sm mb-2 outline-none">
+                <button onclick="showAdmin()" class="w-full bg-slate-700 py-2 rounded text-sm hover:bg-slate-600 transition">Visualizza Risultati</button>
             </div>
 
             <div id="qr-container" class="mt-8 flex flex-col items-center">
-                <p class="text-xs text-slate-500 mb-2">QR Code per i conducenti:</p>
+                <p class="text-xs text-slate-500 mb-2">QR per i conducenti:</p>
                 <div id="qrcode" class="bg-white p-2 rounded"></div>
             </div>
         </div>
@@ -38,28 +38,27 @@
 
         <!-- Admin View -->
         <div id="view-admin" class="hidden bg-slate-900 p-8 rounded-2xl border border-slate-700 w-full">
-            <h2 class="text-2xl font-bold text-emerald-400 mb-4">Risultati in Tempo Reale</h2>
-            <div id="admin-results" class="space-y-2"></div>
-            <button onclick="location.reload()" class="mt-6 w-full bg-slate-700 py-2 rounded hover:bg-slate-600">Esci</button>
+            <h2 class="text-2xl font-bold text-emerald-400 mb-4">Risultati Registrati</h2>
+            <div id="admin-results" class="space-y-2 text-sm"></div>
+            <button onclick="location.reload()" class="mt-6 w-full bg-slate-700 py-2 rounded hover:bg-slate-600">Torna all'inizio</button>
         </div>
     </div>
 
     <script>
         const scenarios = [
-            { n: "Scoppio Pneumatico", f: "A 70km/h botto post. destro. Il bus tira a destra.", opts: ["Inchiodare", "Graduale"] },
+            { n: "Scoppio Pneumatico", f: "A 70km/h botto post. destro.", opts: ["Inchiodare", "Graduale"] },
             { n: "Incendio Motore", f: "Spia STOP accesa. Fumo posteriore.", opts: ["Aprire vano", "Evacuare"] },
-            { n: "Anomalia ECAS", f: "Bus inclinato, nessuna spia rossa.", opts: ["Fermare linea", "Reset Bus"] },
-            { n: "Pressione Olio 0", f: "Spia rossa pressione olio. Rumore metallico.", opts: ["Proseguire", "Spegnere"] },
-            { n: "Pedana Disabili", f: "Pedana bloccata, passeggero attende.", opts: ["Proseguire", "Sblocco Manuale"] },
-            { n: "Cinghia Servizi", f: "Spia batteria rossa. Fischio acuto.", opts: ["Proseguire", "Fermarsi"] }
+            { n: "Anomalia ECAS", f: "Bus inclinato, nessuna spia rossa.", opts: ["Fermare", "Reset Bus"] },
+            { n: "Pressione Olio 0", f: "Spia rossa. Rumore metallico.", opts: ["Proseguire", "Spegnere"] },
+            { n: "Pedana Disabili", f: "Pedana bloccata.", opts: ["Proseguire", "Sblocco Manuale"] },
+            { n: "Cinghia Servizi", f: "Spia batteria rossa. Fischio.", opts: ["Proseguire", "Fermarsi"] }
         ];
 
         let state = { name: "", curS: 0 };
-        let allPlayers = JSON.parse(localStorage.getItem('fordec_data') || '[]');
 
         function joinGame() {
             state.name = document.getElementById('player-name').value;
-            if(!state.name) return alert("Inserisci un nome!");
+            if(!state.name) { alert("Inserisci un nome!"); return; }
             document.getElementById('view-setup').classList.add('hidden');
             document.getElementById('view-game').classList.remove('hidden');
             renderGame();
@@ -75,22 +74,25 @@
         }
 
         function handleAnswer(ans) {
-            allPlayers.push({ name: state.name, scenario: scenarios[state.curS].n, answer: ans });
-            localStorage.setItem('fordec_data', JSON.stringify(allPlayers));
+            let data = JSON.parse(localStorage.getItem('fordec_data') || '[]');
+            data.push({ name: state.name, scenario: scenarios[state.curS].n, answer: ans });
+            localStorage.setItem('fordec_data', JSON.stringify(data));
             
             state.curS++;
             if(state.curS >= scenarios.length) {
-                alert("Sessione completata. Grazie!");
+                alert("Sessione completata!");
                 location.reload();
             } else renderGame();
         }
 
         function showAdmin() {
-            if(document.getElementById('admin-pass').value !== 'fordec2026') return alert("Password errata!");
+            const pass = document.getElementById('admin-pass').value;
+            if(pass !== 'fordec') { alert("Password errata!"); return; }
             document.getElementById('view-setup').classList.add('hidden');
             document.getElementById('view-admin').classList.remove('hidden');
+            let data = JSON.parse(localStorage.getItem('fordec_data') || '[]');
             const res = document.getElementById('admin-results');
-            res.innerHTML = allPlayers.length > 0 ? allPlayers.map(p => `<div class="bg-slate-800 p-2 rounded flex justify-between text-sm"><span>${p.name} (${p.scenario})</span><span class="text-emerald-400 font-bold">${p.answer}</span></div>`).join('') : "<p>Nessuna risposta ancora.</p>";
+            res.innerHTML = data.length > 0 ? data.map(p => `<div class="bg-slate-800 p-3 rounded flex justify-between"><span>${p.name} - ${p.scenario}</span><span class="text-emerald-400 font-bold">${p.answer}</span></div>`).join('') : "Nessuna risposta.";
         }
 
         new QRCode(document.getElementById("qrcode"), window.location.href);
