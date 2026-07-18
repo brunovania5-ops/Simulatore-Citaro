@@ -2,14 +2,14 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>FORDEC Multiplayer Arena PRO</title>
+    <title>FORDEC Multiplayer Arena PRO V6</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
         <div id="setup-view" class="bg-slate-900 p-8 rounded-2xl border border-slate-700">
-            <h1 class="text-2xl font-bold text-emerald-400 mb-6">FORDEC Arena: Configurazione</h1>
-            <input type="text" id="names" placeholder="Nomi (es: Mario, Luca)" class="w-full p-3 bg-slate-800 border border-slate-600 rounded mb-4 text-white">
+            <h1 class="text-2xl font-bold text-emerald-400 mb-6">FORDEC Arena: Configurazione (10 Scenari)</h1>
+            <input type="text" id="names" placeholder="Nomi conducenti (es: Mario, Luca)" class="w-full p-3 bg-slate-800 border border-slate-600 rounded mb-4 text-white">
             <button onclick="init()" class="w-full bg-emerald-600 py-3 rounded font-bold hover:bg-emerald-500">Avvia Sfida</button>
         </div>
 
@@ -20,7 +20,7 @@
                 <p id="s-facts" class="text-slate-300 mb-6"></p>
                 <audio id="audio-player" controls class="w-full mb-6"></audio>
                 <div id="voting-area" class="space-y-4">
-                    <h3 id="voting-title" class="font-bold"></h3>
+                    <h3 id="voting-title" class="font-bold text-lg text-emerald-400"></h3>
                     <div id="actions" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
                 </div>
             </div>
@@ -35,12 +35,16 @@
 
     <script>
         const scenarios = [
-            { n: "Scoppio Pneumatico", f: "Botta 70km/h, tira a destra.", c: "Fermo", s: "scoppio.mp3" },
-            { n: "Incendio Motore", f: "Spia STOP, fumo posteriore.", c: "Evacuare", s: "incendio.mp3" },
-            { n: "Anomalia ECAS", f: "Bus inclinato.", c: "Reset", s: "freni_aria.mp3" },
-            { n: "Pressione Olio", f: "Spia rossa, rumore.", c: "Fermo", s: "motore_rotto.mp3" },
+            { n: "Pressione Olio", f: "Spia rossa, rumore metallico.", c: "Fermo", s: "motore_rotto.mp3" },
             { n: "Pedana Disabili", f: "Pedana bloccata.", c: "Assistenza", s: "pedana.mp3" },
-            { n: "Cinghia Servizi", f: "Spia batteria, fischio.", c: "Fermo", s: "cinghia_slitta.mp3" }
+            { n: "Filtro Abitacolo", f: "Odore muffa.", c: "Proseguire", s: "aria.mp3" },
+            { n: "Anomalia ECAS", f: "Bus inclinato.", c: "Reset", s: "freni_aria.mp3" },
+            { n: "AdBlue", f: "Spia gialla emissioni.", c: "Proseguire", s: "motore_rotto.mp3" },
+            { n: "Scatola Sterzo", f: "Gioco volante.", c: "Fermo", s: "scatola_sterzo.mp3" },
+            { n: "Refrigerante", f: "Livello minimo acqua.", c: "Fermo", s: "aria.mp3" },
+            { n: "Porte", f: "Porta rimbalza.", c: "Proseguire", s: "porta.mp3" },
+            { n: "Freni", f: "Fischio in frenata.", c: "Proseguire", s: "freni_fischio.mp3" },
+            { n: "Motore", f: "Spia batteria rossa.", c: "Fermo", s: "motore_rotto.mp3" }
         ];
 
         let players = [], curS = 0, curP = 0;
@@ -57,14 +61,13 @@
 
         function render() {
             audio.pause();
-            audio.src = "";
-            const s = scenarios[curS];
+            audio.src = scenarios[curS].s;
+            audio.load();
             document.getElementById('status').innerText = `Scenario ${curS + 1}/${scenarios.length}`;
-            document.getElementById('s-title').innerText = s.n;
-            document.getElementById('s-facts').innerText = s.f;
-            document.getElementById('voting-title').innerText = `Vota ora: ${players[curP].name}`;
-            audio.src = s.s;
-            document.getElementById('actions').innerHTML = ["Fermo", "Assistenza", "Evacuare", "Reset"].map(o => 
+            document.getElementById('s-title').innerText = scenarios[curS].n;
+            document.getElementById('s-facts').innerText = scenarios[curS].f;
+            document.getElementById('voting-title').innerText = `Risposta di: ${players[curP].name}`;
+            document.getElementById('actions').innerHTML = ["Fermo", "Assistenza", "Reset", "Proseguire"].map(o => 
                 `<button onclick="vote('${o}')" class="p-4 bg-slate-800 border border-slate-600 rounded hover:bg-emerald-900">${o}</button>`).join('');
         }
 
