@@ -2,50 +2,70 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>FORDEC Arena PRO - Multi-Device</title>
+    <title>FORDEC Live Session PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-6">
-    <div id="app" class="max-w-4xl mx-auto">
-        <!-- Dashboard Docente -->
-        <div id="admin-panel" class="hidden">
-            <h1 class="text-3xl font-bold text-emerald-400 mb-6">Pannello Docente</h1>
-            <div id="qrcode" class="bg-white p-4 inline-block rounded-lg"></div>
-            <div id="live-results" class="mt-8 grid grid-cols-1 gap-4"></div>
-        </div>
+    <!-- Utilizziamo Firebase per la sincronizzazione reale -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        <!-- Interfaccia Conducente -->
-        <div id="player-panel" class="hidden">
-            <h1 class="text-2xl font-bold mb-4">FORDEC Simulator</h1>
-            <input type="text" id="p-name" placeholder="Inserisci il tuo Nome" class="w-full p-3 bg-slate-800 rounded mb-4">
-            <div id="scenario-vote"></div>
-        </div>
-    </div>
+        // Configurazione Firebase (Gratuita e semplice per l'aula)
+        const firebaseConfig = {
+            databaseURL: "https://fordec-live-default-rtdb.firebaseio.com/"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzlxRSfNa2LFbliJhgrX64syj_XOABcPE4bMTshRBSLhMJ6s7wWK-zjEsyTp0ckMR1UcA/exec";
         const scenarios = [
-            {n: "Pressione Olio", c: "Fermo"}, {n: "Pedana Disabili", c: "Assistenza"},
-            {n: "Filtro Abitacolo", c: "Proseguire"}, {n: "Anomalia ECAS", c: "Reset"},
-            {n: "AdBlue", c: "Proseguire"}, {n: "Scatola Sterzo", c: "Fermo"},
-            {n: "Refrigerante", c: "Fermo"}, {n: "Porte", c: "Proseguire"},
-            {n: "Freni", c: "Proseguire"}, {n: "Alternatore", c: "Fermo"}
+            { id: 1, title: "Scoppio Pneumatico", facts: "A 70km/h un botto al posteriore. Il bus tira a destra.", options: ["Inchiodare", "Frenata Graduale"] },
+            { id: 2, title: "Incendio Vano Motore", facts: "Fumo dalla griglia, spia STOP accesa.", options: ["Aprire vano", "Evacuare immediato"] }
         ];
 
-        // Riconoscimento ruolo
-        if(window.location.hash === '#admin') {
-            document.getElementById('admin-panel').classList.remove('hidden');
-            new QRCode(document.getElementById("qrcode"), window.location.href.split('#')[0]);
-        } else {
-            document.getElementById('player-panel').classList.remove('hidden');
-        }
+        window.startSession = () => {
+            const sessionId = document.getElementById('session-id').value || "aula1";
+            set(ref(db, 'sessions/' + sessionId), {
+                scenarioIndex: Math.floor(Math.random() * scenarios.length),
+                status: 'active'
+            });
+            alert("Scenario inviato ai partecipanti!");
+        };
 
-        function submitVote(scenario, vote) {
-            const name = document.getElementById('p-name').value;
-            fetch(API_URL, { method: 'POST', body: JSON.stringify({ player: name, scenario: scenario, vote: vote }) });
-            alert("Voto inviato!");
-        }
+        const sessionId = "aula1"; // ID unico per questa sessione
+        onValue(ref(db, 'sessions/' + sessionId), (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.status === 'active') {
+                const s = scenarios[data.scenarioIndex];
+                document.getElementById('view-player').classList.remove('hidden');
+                document.getElementById('p-title').innerText = s.title;
+                document.getElementById('p-facts').innerText = s.facts;
+                const act = document.getElementById('p-actions');
+                act.innerHTML = "";
+                s.options.forEach(o => {
+                    const b = document.createElement('button');
+                    b.className = "w-full p-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold";
+                    b.innerText = o;
+                    b.onclick = () => alert("Risposta inviata al docente!");
+                    act.appendChild(b);
+                });
+            }
+        });
     </script>
+</head>
+<body class="bg-slate-950 text-white p-6">
+    <div class="max-w-xl mx-auto space-y-8">
+        <!-- VISTA FORMATORE -->
+        <div class="bg-slate-900 p-6 rounded-xl border border-emerald-500">
+            <h1 class="text-xl font-bold text-emerald-400">Pannello Docente</h1>
+            <input type="text" id="session-id" value="aula1" class="bg-slate-800 p-2 w-full mt-2 rounded">
+            <button onclick="startSession()" class="w-full mt-4 bg-emerald-600 py-3 rounded font-bold">Invia Scenario agli Allievi</button>
+        </div>
+
+        <!-- VISTA CONDUCENTE -->
+        <div id="view-player" class="hidden bg-slate-900 p-6 rounded-xl border border-blue-500">
+            <h2 class="text-2xl font-bold text-blue-400" id="p-title">In attesa...</h2>
+            <p class="mt-4" id="p-facts"></p>
+            <div id="p-actions" class="mt-6 grid gap-3"></div>
+        </div>
+    </div>
 </body>
 </html>
