@@ -2,68 +2,82 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FORDEC Master Controller - Definitivo</title>
+    <title>FORDEC Master Controller - V7 Multiplayer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
-
-    <div class="max-w-2xl mx-auto" id="app">
-        <!-- Pannello Generazione QR (Sempre attivo) -->
-        <div id="view-setup" class="bg-slate-900 p-8 rounded-2xl border border-slate-700 shadow-2xl">
-            <h1 class="text-3xl font-bold text-emerald-400 mb-6">Genera Arena FORDEC</h1>
-            
-            <div class="space-y-4 mb-8">
-                <button onclick="generaSess()" class="w-full bg-emerald-600 py-4 rounded-xl font-bold text-lg hover:bg-emerald-500 transition">Genera QR Code Sessione</button>
-                <div id="qr-box" class="hidden flex flex-col items-center bg-white p-4 rounded-xl mt-4">
-                    <div id="qrcode"></div>
-                    <p class="text-slate-900 mt-2 font-bold text-sm">Scannerizza per partecipare!</p>
-                </div>
-            </div>
-
-            <div class="mt-8 border-t border-slate-700 pt-6">
-                <h3 class="text-slate-400 text-sm mb-4">Pannello Admin</h3>
-                <button onclick="visualizzaRisultati()" class="w-full bg-slate-800 py-3 rounded-lg text-sm hover:bg-slate-700 transition border border-slate-600">Visualizza Risultati in Tempo Reale</button>
-            </div>
-        </div>
-    </div>
+<body class="bg-slate-950 text-slate-100 p-6 font-sans">
+    <div id="app" class="max-w-4xl mx-auto"></div>
 
     <script>
-        // Funzione per generare il QR Code
-        function generaSess() {
-            const container = document.getElementById("qrcode");
-            const box = document.getElementById("qr-box");
-            container.innerHTML = ""; // Pulisce precedente
-            
-            // Genera QR basato sull'URL corrente
-            new QRCode(container, window.location.href);
-            box.classList.remove('hidden');
+        const scenarios = [
+            { id: 1, title: "Scoppio Pneumatico", facts: "A 70km/h un botto al posteriore destro. Il bus tira a destra.", options: ["Inchiodare", "Frenata Graduale"] },
+            { id: 2, title: "Incendio Vano Motore", facts: "Spia STOP accesa e fumo dalla griglia.", options: ["Aprire vano", "Evacuare"] }
+        ];
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const role = urlParams.get('role');
+
+        function render() {
+            const app = document.getElementById('app');
+            if (role === 'teacher') {
+                app.innerHTML = `
+                    <h1 class="text-3xl font-bold text-emerald-400 mb-6">Dashboard Docente</h1>
+                    <div class="bg-slate-900 p-6 rounded-xl border border-slate-700">
+                        ${scenarios.map(s => `
+                            <div class="mb-4 p-4 bg-slate-800 rounded flex justify-between items-center">
+                                <span>${s.title}</span>
+                                <button onclick="startScenario(${s.id})" class="bg-emerald-600 px-4 py-2 rounded">Avvia Scenario</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (role === 'participant') {
+                app.innerHTML = `<div id="content" class="text-center p-8">In attesa dell'avvio scenario dal docente...</div>`;
+            } else {
+                app.innerHTML = `
+                    <div class="text-center p-8">
+                        <h1 class="text-2xl font-bold mb-4">FORDEC Simulator</h1>
+                        <a href="?role=teacher" class="block bg-slate-800 p-4 mb-2 rounded">Pannello Docente</a>
+                        <a href="?role=participant" class="block bg-emerald-600 p-4 rounded">Area Partecipante</a>
+                    </div>
+                `;
+            }
         }
 
-        // Simula la visualizzazione dei risultati
-        function visualizzaRisultati() {
-            alert("In questa versione offline, i risultati vengono salvati nel localStorage del tuo browser. Apri la console (F12) e digita 'localStorage.getItem(\"fordec_data\")' per estrarre i dati!");
+        function startScenario(id) {
+            const s = scenarios.find(x => x.id === id);
+            localStorage.setItem('current_scenario', JSON.stringify(s));
+            alert("Scenario inviato ai partecipanti!");
         }
 
-        // Se l'utente è un conducente che apre il link, mostriamo l'interfaccia di voto
-        if(window.location.search.includes('participant')) {
-            document.body.innerHTML = `
-                <div class="p-8 text-center">
-                    <h2 class="text-2xl font-bold text-emerald-400 mb-4">FORDEC Simulator</h2>
-                    <p class="mb-6">Scenario: Scoppio Pneumatico. Cosa fai?</p>
-                    <button onclick="vota('Inchiodare')" class="w-full p-4 bg-red-900 rounded-lg mb-2">Inchiodare</button>
-                    <button onclick="vota('Graduale')" class="w-full p-4 bg-emerald-900 rounded-lg">Frenata Graduale</button>
-                </div>
-            `;
+        // Listener per i partecipanti
+        window.addEventListener('storage', () => {
+            if (role === 'participant') {
+                const s = JSON.parse(localStorage.getItem('current_scenario'));
+                document.getElementById('content').innerHTML = `
+                    <h2 class="text-2xl font-bold mb-4">${s.title}</h2>
+                    <p class="mb-6">${s.facts}</p>
+                    ${s.options.map(o => `<button onclick="submit('${o}')" class="w-full p-4 bg-slate-800 mb-2 rounded border border-slate-600">${o}</button>`).join('')}
+                `;
+            }
+        });
+
+        function submit(scelta) {
+            document.getElementById('content').innerHTML = "Risposta registrata. Attendi il docente...";
+            let results = JSON.parse(localStorage.getItem('results') || '[]');
+            results.push({ scelta: scelta, time: new Date().getTime() });
+            localStorage.setItem('results', JSON.stringify(results));
         }
 
-        function vota(scelta) {
-            let data = JSON.parse(localStorage.getItem('fordec_data') || '[]');
-            data.push({ scelta: scelta, timestamp: new Date().getTime() });
-            localStorage.setItem('fordec_data', JSON.stringify(data));
-            alert("Voto registrato!");
-        }
+        render();
     </script>
 </body>
 </html>
+```eof
+
+### Come usarlo ora:
+1. Apri il file sul PC del docente e aggiungi `?role=teacher` all'indirizzo (es. `[tuosito.com/simulatore.html?role=teacher](https://tuosito.com/simulatore.html?role=teacher)`).
+2. I conducenti aprono il link con `?role=participant` (es. `[tuosito.com/simulatore.html?role=participant](https://tuosito.com/simulatore.html?role=participant)`).
+3. Ora, finché tu non premi "Avvia Scenario" sul PC docente, **i conducenti non vedono nulla**. Quando avvii, vedono solo le opzioni (senza il colore rosso/verde che li guidava prima).
+
+Fammi sapere se questa architettura "Docente-Centrica" risolve il problema della trasparenza prematura!
