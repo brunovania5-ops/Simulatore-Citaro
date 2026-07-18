@@ -2,82 +2,50 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>FORDEC Master Controller - V7 Multiplayer</title>
+    <title>FORDEC Arena PRO - Multi-Device</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 p-6 font-sans">
-    <div id="app" class="max-w-4xl mx-auto"></div>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6">
+    <div id="app" class="max-w-4xl mx-auto">
+        <!-- Dashboard Docente -->
+        <div id="admin-panel" class="hidden">
+            <h1 class="text-3xl font-bold text-emerald-400 mb-6">Pannello Docente</h1>
+            <div id="qrcode" class="bg-white p-4 inline-block rounded-lg"></div>
+            <div id="live-results" class="mt-8 grid grid-cols-1 gap-4"></div>
+        </div>
+
+        <!-- Interfaccia Conducente -->
+        <div id="player-panel" class="hidden">
+            <h1 class="text-2xl font-bold mb-4">FORDEC Simulator</h1>
+            <input type="text" id="p-name" placeholder="Inserisci il tuo Nome" class="w-full p-3 bg-slate-800 rounded mb-4">
+            <div id="scenario-vote"></div>
+        </div>
+    </div>
 
     <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzlxRSfNa2LFbliJhgrX64syj_XOABcPE4bMTshRBSLhMJ6s7wWK-zjEsyTp0ckMR1UcA/exec";
         const scenarios = [
-            { id: 1, title: "Scoppio Pneumatico", facts: "A 70km/h un botto al posteriore destro. Il bus tira a destra.", options: ["Inchiodare", "Frenata Graduale"] },
-            { id: 2, title: "Incendio Vano Motore", facts: "Spia STOP accesa e fumo dalla griglia.", options: ["Aprire vano", "Evacuare"] }
+            {n: "Pressione Olio", c: "Fermo"}, {n: "Pedana Disabili", c: "Assistenza"},
+            {n: "Filtro Abitacolo", c: "Proseguire"}, {n: "Anomalia ECAS", c: "Reset"},
+            {n: "AdBlue", c: "Proseguire"}, {n: "Scatola Sterzo", c: "Fermo"},
+            {n: "Refrigerante", c: "Fermo"}, {n: "Porte", c: "Proseguire"},
+            {n: "Freni", c: "Proseguire"}, {n: "Alternatore", c: "Fermo"}
         ];
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const role = urlParams.get('role');
-
-        function render() {
-            const app = document.getElementById('app');
-            if (role === 'teacher') {
-                app.innerHTML = `
-                    <h1 class="text-3xl font-bold text-emerald-400 mb-6">Dashboard Docente</h1>
-                    <div class="bg-slate-900 p-6 rounded-xl border border-slate-700">
-                        ${scenarios.map(s => `
-                            <div class="mb-4 p-4 bg-slate-800 rounded flex justify-between items-center">
-                                <span>${s.title}</span>
-                                <button onclick="startScenario(${s.id})" class="bg-emerald-600 px-4 py-2 rounded">Avvia Scenario</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } else if (role === 'participant') {
-                app.innerHTML = `<div id="content" class="text-center p-8">In attesa dell'avvio scenario dal docente...</div>`;
-            } else {
-                app.innerHTML = `
-                    <div class="text-center p-8">
-                        <h1 class="text-2xl font-bold mb-4">FORDEC Simulator</h1>
-                        <a href="?role=teacher" class="block bg-slate-800 p-4 mb-2 rounded">Pannello Docente</a>
-                        <a href="?role=participant" class="block bg-emerald-600 p-4 rounded">Area Partecipante</a>
-                    </div>
-                `;
-            }
+        // Riconoscimento ruolo
+        if(window.location.hash === '#admin') {
+            document.getElementById('admin-panel').classList.remove('hidden');
+            new QRCode(document.getElementById("qrcode"), window.location.href.split('#')[0]);
+        } else {
+            document.getElementById('player-panel').classList.remove('hidden');
         }
 
-        function startScenario(id) {
-            const s = scenarios.find(x => x.id === id);
-            localStorage.setItem('current_scenario', JSON.stringify(s));
-            alert("Scenario inviato ai partecipanti!");
+        function submitVote(scenario, vote) {
+            const name = document.getElementById('p-name').value;
+            fetch(API_URL, { method: 'POST', body: JSON.stringify({ player: name, scenario: scenario, vote: vote }) });
+            alert("Voto inviato!");
         }
-
-        // Listener per i partecipanti
-        window.addEventListener('storage', () => {
-            if (role === 'participant') {
-                const s = JSON.parse(localStorage.getItem('current_scenario'));
-                document.getElementById('content').innerHTML = `
-                    <h2 class="text-2xl font-bold mb-4">${s.title}</h2>
-                    <p class="mb-6">${s.facts}</p>
-                    ${s.options.map(o => `<button onclick="submit('${o}')" class="w-full p-4 bg-slate-800 mb-2 rounded border border-slate-600">${o}</button>`).join('')}
-                `;
-            }
-        });
-
-        function submit(scelta) {
-            document.getElementById('content').innerHTML = "Risposta registrata. Attendi il docente...";
-            let results = JSON.parse(localStorage.getItem('results') || '[]');
-            results.push({ scelta: scelta, time: new Date().getTime() });
-            localStorage.setItem('results', JSON.stringify(results));
-        }
-
-        render();
     </script>
 </body>
 </html>
-```eof
-
-### Come usarlo ora:
-1. Apri il file sul PC del docente e aggiungi `?role=teacher` all'indirizzo (es. `[tuosito.com/simulatore.html?role=teacher](https://tuosito.com/simulatore.html?role=teacher)`).
-2. I conducenti aprono il link con `?role=participant` (es. `[tuosito.com/simulatore.html?role=participant](https://tuosito.com/simulatore.html?role=participant)`).
-3. Ora, finché tu non premi "Avvia Scenario" sul PC docente, **i conducenti non vedono nulla**. Quando avvii, vedono solo le opzioni (senza il colore rosso/verde che li guidava prima).
-
-Fammi sapere se questa architettura "Docente-Centrica" risolve il problema della trasparenza prematura!
